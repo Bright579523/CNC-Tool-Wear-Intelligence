@@ -1,0 +1,49 @@
+case,replicate,material,DOC_mm,feed_mm_rev,feed_speed_mm_min,MRR_prime_mm2_min,threshold_VB_mm,estimated_time_to_threshold_min,estimated_passes_to_threshold,material_removed_proxy_mm2,estimation_method,data_quality_flag
+1,1,Cast Iron,1.5,0.5,413.0,619.5,0.3,29.33,10.11,18172.0,Linear Interpolated,Interpolated between bounding observations
+1,1,Cast Iron,1.5,0.5,413.0,619.5,0.5,44.0,15.0,27258.0,Exact Observation,Exact Match
+1,1,Cast Iron,1.5,0.5,413.0,619.5,0.8,,,,Right-Censored / Not Reached,Right-Censored at 48.0 min (Pass 17)
+2,1,Cast Iron,0.75,0.5,413.0,309.75,0.3,43.8,9.8,13567.0,Linear Interpolated,Interpolated between bounding observations
+2,1,Cast Iron,0.75,0.5,413.0,309.75,0.5,67.71,13.29,20974.5,Linear Interpolated,Interpolated between bounding observations
+2,1,Cast Iron,0.75,0.5,413.0,309.75,0.8,,,,Right-Censored / Not Reached,Right-Censored at 72.0 min (Pass 14)
+3,1,Cast Iron,0.75,0.25,206.5,154.875,0.3,59.4,11.4,9199.6,Linear Interpolated,Interpolated between bounding observations
+3,1,Cast Iron,0.75,0.25,206.5,154.875,0.5,78.27,15.55,12122.5,Linear Interpolated,Interpolated between bounding observations
+3,1,Cast Iron,0.75,0.25,206.5,154.875,0.8,,,,Right-Censored / Not Reached,Right-Censored at 81.0 min (Pass 16)
+4,1,Cast Iron,1.5,0.25,206.5,309.75,0.3,20.45,3.91,6335.8,Linear Interpolated,Interpolated between bounding observations
+4,1,Cast Iron,1.5,0.25,206.5,309.75,0.5,,,,Right-Censored / Not Reached,Right-Censored at 39.0 min (Pass 7)
+4,1,Cast Iron,1.5,0.25,206.5,309.75,0.8,,,,Right-Censored / Not Reached,Right-Censored at 39.0 min (Pass 7)
+5,1,Stainless Steel J45,1.5,0.5,413.0,619.5,0.3,6.2,3.07,3840.9,Linear Interpolated,Interpolated between bounding observations
+5,1,Stainless Steel J45,1.5,0.5,413.0,619.5,0.5,11.0,4.67,6814.5,Linear Interpolated,Interpolated between bounding observations
+5,1,Stainless Steel J45,1.5,0.5,413.0,619.5,0.8,,,,Right-Censored / Not Reached,Right-Censored at 15.0 min (Pass 6)
+6,1,Stainless Steel J45,1.5,0.25,206.5,309.75,0.3,,,,Not Reached / Insufficient Data,"ABORTED_EXPERIMENT (Only 1 Pass, VB=0.0)"
+6,1,Stainless Steel J45,1.5,0.25,206.5,309.75,0.5,,,,Not Reached / Insufficient Data,"ABORTED_EXPERIMENT (Only 1 Pass, VB=0.0)"
+6,1,Stainless Steel J45,1.5,0.25,206.5,309.75,0.8,,,,Not Reached / Insufficient Data,"ABORTED_EXPERIMENT (Only 1 Pass, VB=0.0)"
+7,1,Stainless Steel J45,0.75,0.25,206.5,154.875,0.3,14.2,5.6,2199.2,Linear Interpolated,Interpolated between bounding observations
+7,1,Stainless Steel J45,0.75,0.25,206.5,154.875,0.5,,,,Right-Censored / Not Reached,Right-Censored at 19.0 min (Pass 7)
+7,1,Stainless Steel J45,0.75,0.25,206.5,154.875,0.8,,,,Right-Censored / Not Reached,Right-Censored at 19.0 min (Pass 7)
+8,1,Stainless Steel J45,0.75,0.5,413.0,309.75,0.3,6.0,3.0,1858.5,Exact Observation,Exact Match
+8,1,Stainless Steel J45,0.75,0.5,413.0,309.75,0.5,10.0,5.33,3097.5,Linear Interpolated,Interpolated between bounding observations
+8,1,Stainless Steel J45,0.75,0.5,413.0,309.75,0.8,,,,Right-Censored / Not Reached,Right-Censored at 12.0 min (Pass 6)
+9,2,Cast Iron,1.5,0.5,413.0,619.5,0.3,23.64,5.27,14642.7,Linear Interpolated,Interpolated between bounding observations
+9,2,Cast Iron,1.5,0.5,413.0,619.5,0.5,35.06,7.18,21718.9,Linear Interpolated,Interpolated between bounding observations
+9,2,Cast Iron,1.5,0.5,413.0,619.5,0.8,45.65,8.94,28278.4,Linear Interpolated,Interpolated between bounding observations
+10,2,Cast Iron,1.5,0.25,206.5,309.75,0.3,23.73,5.45,7349.5,Linear Interpolated,Interpolated between bounding observations
+10,2,Cast Iron,1.5,0.25,206.5,309.75,0.5,42.0,8.5,13009.5,Linear Interpolated,Interpolated between bounding observations
+10,2,Cast Iron,1.5,0.25,206.5,309.75,0.8,,,,Right-Censored / Not Reached,Right-Censored at 57.0 min (Pass 10)
+11,2,Cast Iron,0.75,0.25,206.5,154.875,0.3,55.8,14.6,8642.0,Linear Interpolated,Interpolated between bounding observations
+11,2,Cast Iron,0.75,0.25,206.5,154.875,0.5,81.8,19.3,12668.8,Linear Interpolated,Interpolated between bounding observations
+11,2,Cast Iron,0.75,0.25,206.5,154.875,0.8,,,,Right-Censored / Not Reached,Right-Censored at 105.0 min (Pass 23)
+12,2,Cast Iron,0.75,0.5,413.0,309.75,0.3,40.5,8.75,12544.9,Linear Interpolated,Interpolated between bounding observations
+12,2,Cast Iron,0.75,0.5,413.0,309.75,0.5,61.67,13.11,19101.2,Linear Interpolated,Interpolated between bounding observations
+12,2,Cast Iron,0.75,0.5,413.0,309.75,0.8,,,,Right-Censored / Not Reached,Right-Censored at 74.0 min (Pass 15)
+13,2,Stainless Steel J45,0.75,0.25,206.5,154.875,0.3,15.33,5.87,2374.8,Linear Interpolated,Interpolated between bounding observations
+13,2,Stainless Steel J45,0.75,0.25,206.5,154.875,0.5,22.43,8.14,3473.6,Linear Interpolated,Interpolated between bounding observations
+13,2,Stainless Steel J45,0.75,0.25,206.5,154.875,0.8,31.4,10.8,4863.1,Linear Interpolated,Interpolated between bounding observations
+14,2,Stainless Steel J45,0.75,0.5,413.0,309.75,0.3,10.64,5.09,3294.6,Linear Interpolated,Interpolated between bounding observations
+14,2,Stainless Steel J45,0.75,0.5,413.0,309.75,0.5,15.6,7.2,4832.1,Linear Interpolated,Interpolated between bounding observations
+14,2,Stainless Steel J45,0.75,0.5,413.0,309.75,0.8,20.86,8.95,6460.5,Linear Interpolated,Interpolated between bounding observations
+15,2,Stainless Steel J45,1.5,0.25,206.5,309.75,0.3,6.67,3.22,2065.0,Linear Interpolated,Interpolated between bounding observations
+15,2,Stainless Steel J45,1.5,0.25,206.5,309.75,0.5,13.75,5.25,4259.1,Linear Interpolated,Interpolated between bounding observations
+15,2,Stainless Steel J45,1.5,0.25,206.5,309.75,0.8,,,,Right-Censored / Not Reached,Right-Censored at 19.0 min (Pass 7)
+16,2,Stainless Steel J45,1.5,0.5,413.0,619.5,0.3,4.12,3.75,2555.4,Linear Interpolated,Interpolated between bounding observations
+16,2,Stainless Steel J45,1.5,0.5,413.0,619.5,0.5,7.36,5.45,4561.8,Linear Interpolated,Interpolated between bounding observations
+16,2,Stainless Steel J45,1.5,0.5,413.0,619.5,0.8,,,,Right-Censored / Not Reached,Right-Censored at 9.0 min (Pass 6)

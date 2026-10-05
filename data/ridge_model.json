@@ -1,0 +1,65 @@
+{
+  "model_type": "Ridge",
+  "alpha": 1.0,
+  "random_state": 42,
+  "feature_order": [
+    "smcAC_rms",
+    "DOC_mm",
+    "feed_mm_rev",
+    "AE_spindle_p2p",
+    "vib_spindle_kurtosis",
+    "AE_table_rms",
+    "vib_spindle_p2p",
+    "material_code"
+  ],
+  "scaler": {
+    "type": "StandardScaler",
+    "with_mean": true,
+    "with_std": true,
+    "mean": {
+      "smcAC_rms": 1.7384640072556947,
+      "DOC_mm": 1.0344827586206897,
+      "feed_mm_rev": 0.36551724137931035,
+      "AE_spindle_p2p": 0.42446373248922414,
+      "vib_spindle_kurtosis": 393.5800337209384,
+      "AE_table_rms": 0.19855306668663006,
+      "vib_spindle_p2p": 0.9488567483836207,
+      "material_code": 1.3310344827586207
+    },
+    "std": {
+      "smcAC_rms": 0.5684358372651779,
+      "DOC_mm": 0.36391156757250753,
+      "feed_mm_rev": 0.12463979015122634,
+      "AE_spindle_p2p": 0.20086612557945158,
+      "vib_spindle_kurtosis": 538.0099580214959,
+      "AE_table_rms": 0.057829941342489005,
+      "vib_spindle_p2p": 0.6546072125132442,
+      "material_code": 0.4705854374960546
+    }
+  },
+  "coefficients": {
+    "smcAC_rms": 0.29403487688762475,
+    "DOC_mm": -0.15467174796286123,
+    "feed_mm_rev": -0.09436124131358746,
+    "AE_spindle_p2p": 0.03020206075920267,
+    "vib_spindle_kurtosis": 0.020524083183130867,
+    "AE_table_rms": -0.01992486596051803,
+    "vib_spindle_p2p": -0.015571732172478947,
+    "material_code": 0.005614181842810112
+  },
+  "intercept": 0.3393793103448275,
+  "sklearn_version": "1.8.0",
+  "training_data_file": "feature_dataset_v32.csv",
+  "training_data_rows": 145,
+  "training_data_sha256": "4c1a6e960283befe2601b3e3a823e4146d1163949274845b948938638355f618",
+  "artifact_version": "1.0.0",
+  "benchmark_metrics": {
+    "LOGO_MAE_mm": 0.1044,
+    "LOGO_RMSE_mm": 0.1425,
+    "LOGO_R2": 0.6989,
+    "LOCO_MAE_mm": 0.1221,
+    "LOCO_RMSE_mm": 0.1566,
+    "LOCO_R2": 0.636,
+    "cross_validation_note": "Benchmark metrics represent grouped cross-validation, not full-data training residual error."
+  }
+}

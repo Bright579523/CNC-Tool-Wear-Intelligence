@@ -1,0 +1,37 @@
+# =============================================================================
+# CNC Tool Wear Intelligence - .gitignore
+# =============================================================================
+
+# Large binary dataset (raw 71 MB MATLAB file; downloadable via scripts/download_dataset.py)
+data/mill.mat
+
+# Python bytecode & cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyd
+
+# Jupyter Notebook checkpoints
+.ipynb_checkpoints/
+
+# IDE & Editor configurations
+.vscode/
+.idea/
+.gemini/
+
+# Virtual environments
+venv/
+.env/
+env/
+ENV/
+
+# Operating system files
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+.DS_Store
+
+# Internal development notes & scaffolding
+wireframe_spec_for_gpt.md
+PROJECT_HANDOFF_V2.md
+V2_DATASET_SHORTLIST_AUDIT.md

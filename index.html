@@ -1,0 +1,737 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Estimate CNC milling flank wear width (VB) from machining conditions and sensor features.">
+  <title>CNC Tool Wear Estimator</title>
+  <!--
+    GERMAN INDUSTRIAL TERMINOLOGY GLOSSARY & REFERENCE:
+    - Target: Flank wear width VB / Verschleißmarkenbreite VB (ISO 8688-2 / DIN)
+      (Note: Freiflächenverschleiß refers to the wear mechanism/location; Verschleißmarkenbreite VB is the measured dimension)
+    - Cutting depth / DOC: Schnitttiefe ap (mm)
+    - Feed: Vorschub
+    - Feed per revolution: Vorschub pro Umdrehung (mm/U)
+    - Feed [mm/rev]: Vorschub [mm/U]
+    - Workpiece material: Werkstoff
+    - Tool wear estimate: Werkzeugverschleiß-Schätzung
+    - Spindle current: Spindelstrom
+    - Spindle vibration: Spindelschwingung
+    - Acoustic emission: Schallemission
+    - Model-estimated change: Modellgeschätzte Änderung (Directional change, NOT causal recommendation)
+  -->
+  <style>
+    :root {
+      --bg: #0e1320; --card: #151c2e; --field: #1b2438; --line: #26324d;
+      --text: #f1f5f9; --muted: #94a3b8; --dim: #64748b;
+      --primary: #2f6df6; --amber: #f5a524; --green: #2fbf8f; --blue: #7aa7ff;
+      --danger: #ef4444; --neutral-badge: #334155;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: "Segoe UI", system-ui, -apple-system, Roboto, Arial, sans-serif;
+      background: var(--bg); color: var(--text); line-height: 1.5;
+      padding: 28px 24px 48px; display: flex; justify-content: center;
+    }
+    .page { width: 100%; max-width: 1120px; display: flex; flex-direction: column; gap: 22px; }
+
+    /* Header */
+    header { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; }
+    h1 { font-size: 1.35rem; font-weight: 700; letter-spacing: -0.01em; }
+    .sub { font-size: .9rem; color: var(--muted); margin-top: 2px; }
+    .lang { display: inline-flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+    .lang button {
+      background: transparent; border: 0; color: var(--muted); padding: 6px 12px;
+      font-size: .8rem; font-weight: 600; cursor: pointer;
+    }
+    .lang button.active { background: var(--primary); color: #fff; }
+
+    /* Layout */
+    .split { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; align-items: stretch; }
+    @media (max-width: 900px) { .split { grid-template-columns: 1fr; } }
+    .card { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 20px; }
+    .step {
+      font-size: .72rem; font-weight: 700; letter-spacing: .09em; text-transform: uppercase;
+      color: var(--dim); margin-bottom: 14px; display: flex; justify-content: space-between; align-items: center;
+    }
+    .group-label { font-size: .75rem; font-weight: 600; color: var(--blue); margin: 4px 0 8px; }
+    .group-label.sensor { margin-top: 18px; }
+
+    /* Stale state indicator badges */
+    .stale-tag {
+      font-size: .72rem; font-weight: 600; color: var(--amber); background: rgba(245,165,36,.12);
+      border: 1px solid rgba(245,165,36,.3); border-radius: 6px; padding: 2px 8px; display: none;
+    }
+    .stale-tag.show { display: inline-block; }
+    .stale-note {
+      font-size: .76rem; color: var(--amber); margin-bottom: 6px; display: none;
+    }
+    .stale-note.show { display: block; }
+    .card.stale-border { border-style: dashed; }
+
+    /* Fields */
+    .row { display: grid; grid-template-columns: 1fr 120px; align-items: center; gap: 10px; margin-bottom: 8px; }
+    label { font-size: .85rem; color: var(--text); }
+    .unit { color: var(--dim); font-size: .75rem; margin-left: 4px; }
+    .tip { color: var(--dim); cursor: help; font-size: .75rem; margin-left: 4px; }
+    input, select {
+      width: 100%; background: var(--field); border: 1px solid var(--line); color: var(--text);
+      padding: 7px 9px; border-radius: 7px; font-size: .88rem;
+    }
+    input:focus, select:focus { outline: 2px solid var(--primary); outline-offset: 0; border-color: transparent; }
+    input.invalid, select.invalid { border-color: var(--danger); outline-color: var(--danger); }
+    .field-err { font-size: .72rem; color: var(--danger); margin: -4px 0 6px; display: none; }
+    .field-err.show { display: block; }
+    .oor { font-size: .72rem; color: var(--amber); margin: -4px 0 6px; display: none; }
+    .oor.show { display: block; }
+
+    .examples { display: flex; align-items: center; gap: 8px; margin-bottom: 14px; font-size: .8rem; color: var(--muted); }
+    .examples select { width: auto; padding: 4px 8px; font-size: .8rem; }
+
+    .btn {
+      width: 100%; margin-top: 12px; background: var(--primary); color: #fff; border: 0; border-radius: 9px;
+      padding: 13px; font-size: .98rem; font-weight: 700; cursor: pointer; transition: filter .15s, transform .1s;
+    }
+    .btn:hover { filter: brightness(1.1); }
+    .btn:active { transform: translateY(1px); }
+
+    /* Result */
+    .result { display: flex; flex-direction: column; text-align: center; }
+    .result .kicker { font-size: .78rem; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; }
+    .big { font-size: 4.2rem; font-weight: 800; letter-spacing: -.04em; line-height: 1.05; margin: 8px 0 4px; }
+    .big small { font-size: 1.4rem; font-weight: 500; color: var(--muted); margin-left: 6px; letter-spacing: 0; }
+    .pill {
+      align-self: center; display: inline-flex; gap: 8px; align-items: center; padding: 6px 14px; border-radius: 999px;
+      font-size: .85rem; font-weight: 600; margin: 8px 0 18px; border: 1px solid;
+    }
+    .pill.above { color: #ffc65c; background: rgba(245,165,36,.12); border-color: rgba(245,165,36,.35); }
+    .pill.below { color: #55d6a8; background: rgba(47,191,143,.12); border-color: rgba(47,191,143,.35); }
+    .scale { position: relative; height: 10px; border-radius: 99px; background: #222c45; margin: 14px 4px 8px; }
+    .scale .fill { position: absolute; inset: 0 auto 0 0; border-radius: 99px; background: linear-gradient(90deg, var(--green), var(--blue) 40%, var(--amber) 75%, #ef5a5a); transition: width .3s; }
+    .scale .thr { position: absolute; left: 30%; top: -6px; bottom: -6px; width: 2px; background: var(--amber); }
+    .scale .dot { position: absolute; top: -5px; width: 20px; height: 20px; border-radius: 50%; background: #fff; border: 4px solid var(--primary); transform: translateX(-50%); transition: left .3s; }
+    .ticks { display: flex; justify-content: space-between; font-size: .72rem; color: var(--dim); padding: 0 2px; }
+    .mae { margin-top: auto; padding-top: 16px; font-size: .85rem; color: var(--muted); }
+    .mae b { color: var(--text); }
+    .note { display: none; text-align: left; font-size: .8rem; border-radius: 9px; padding: 10px 12px; margin-top: 10px; }
+    .note.show { display: block; }
+    .note.caution { background: rgba(245,165,36,.1); border: 1px solid rgba(245,165,36,.35); color: #fde3a6; }
+    .note.floor { background: rgba(47,109,246,.1); border: 1px solid rgba(122,167,255,.3); color: #bcd2ff; }
+
+    /* Scenario */
+    .scen { display: grid; grid-template-columns: 1fr auto 1fr auto; align-items: center; gap: 16px; }
+    @media (max-width: 760px) { .scen { grid-template-columns: 1fr; } }
+    .scen .box { background: var(--field); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; }
+    .scen .cap { font-size: .72rem; color: var(--dim); text-transform: uppercase; letter-spacing: .07em; margin-bottom: 4px; }
+    .scen .val { font-size: 1.6rem; font-weight: 700; }
+    .scen .meta { font-size: .78rem; color: var(--muted); }
+    .scen .arrow { color: var(--dim); font-size: 1.3rem; text-align: center; }
+
+    /* Neutral Δ badge styling (strictly no green/red recommendation semantics) */
+    .delta-wrap { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; }
+    .delta {
+      font-weight: 700; font-size: 1rem; padding: 6px 12px; border-radius: 8px; white-space: nowrap;
+      color: #93c5fd; background: rgba(51,65,85,.5); border: 1px solid rgba(148,163,184,.25);
+    }
+    .delta-label { font-size: .68rem; color: var(--dim); text-transform: uppercase; letter-spacing: .05em; }
+
+    .scen-sel { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin: 6px 0; }
+    .scen-sel select { font-size: .78rem; padding: 4px 6px; }
+    .disclaimer { font-size: .76rem; color: var(--dim); font-style: italic; margin-top: 10px; }
+    .scen-floor-note { font-size: .72rem; color: var(--blue); margin-top: 4px; display: none; }
+    .scen-floor-note.show { display: block; }
+
+    /* Evidence (Progressive disclosure) */
+    details.about { background: var(--card); border: 1px solid var(--line); border-radius: 12px; }
+    details.about > summary { cursor: pointer; padding: 14px 20px; font-size: .88rem; font-weight: 600; color: var(--muted); list-style: none; }
+    details.about > summary::-webkit-details-marker { display: none; }
+    details.about > summary::before { content: "▸  "; }
+    details.about[open] > summary::before { content: "▾  "; }
+    details.about > summary:hover { color: var(--text); }
+    .about-body { padding: 4px 20px 20px; display: grid; gap: 14px; }
+    .about-body p { font-size: .82rem; color: var(--muted); }
+    .metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 10px; }
+    .metric { background: var(--field); border-radius: 9px; padding: 10px 12px; font-size: .78rem; color: var(--muted); }
+    .metric b { display: block; color: var(--text); font-size: .95rem; margin: 2px 0; }
+    details.deep { background: var(--field); border-radius: 9px; padding: 10px 14px; }
+    details.deep summary { cursor: pointer; font-size: .8rem; font-weight: 600; color: var(--muted); }
+    table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: .76rem; color: var(--muted); }
+    th, td { padding: 5px 8px; text-align: left; border-bottom: 1px solid var(--line); }
+    .pos { color: #55d6a8; font-weight: 600; } .neg { color: var(--blue); font-weight: 600; }
+    .proto { font-size: .72rem; color: var(--dim); text-align: center; }
+  </style>
+</head>
+<body>
+<main class="page">
+
+  <header>
+    <div>
+      <h1 data-i18n="title">CNC Tool Wear Estimator</h1>
+      <p class="sub" data-i18n="subtitle">Estimate flank wear from machining conditions and sensor measurements.</p>
+    </div>
+    <div class="lang" role="group" aria-label="Language">
+      <button id="btn_en" class="active" onclick="setLang('en')">EN</button>
+      <button id="btn_de" onclick="setLang('de')">DE</button>
+    </div>
+  </header>
+
+  <section class="split">
+    <!-- 1. INPUT -->
+    <div class="card">
+      <div class="step">
+        <span data-i18n="step1">1 · Enter your data</span>
+        <span id="stale_badge" class="stale-tag" data-i18n="stale_tag">Inputs changed</span>
+      </div>
+
+      <div class="examples">
+        <span data-i18n="example">Load example:</span>
+        <select id="example" onchange="loadExample(this.value)">
+          <option value="" data-i18n="ex_pick">Choose…</option>
+          <option value="low" data-i18n="ex_low">Low wear</option>
+          <option value="mid" data-i18n="ex_mid">Mid-range wear</option>
+          <option value="high" data-i18n="ex_high">High wear</option>
+          <option value="floor" data-i18n="ex_floor">Edge case (below zero)</option>
+        </select>
+      </div>
+
+      <!-- Main Input Form (Handles Enter key cleanly without ad-hoc listeners) -->
+      <form id="main_form" onsubmit="event.preventDefault(); estimate();">
+        <div class="group-label" data-i18n="g_cond">Machining condition</div>
+        <div class="row">
+          <label for="material" data-i18n="material">Material</label>
+          <select id="material" onchange="onDraftChange()">
+            <option value="1" data-i18n="mat1">Cast iron</option>
+            <option value="2" data-i18n="mat2">Stainless steel J45</option>
+          </select>
+        </div>
+        <div class="row">
+          <label for="feed"><span data-i18n="feed">Feed</span><span class="unit" data-i18n="u_feed">mm/rev</span></label>
+          <select id="feed" onchange="onDraftChange()"><option value="0.25">0.25</option><option value="0.5">0.50</option></select>
+        </div>
+        <div class="row">
+          <label for="doc"><span data-i18n="doc">Depth of cut</span><span class="unit">mm</span></label>
+          <select id="doc" onchange="onDraftChange()"><option value="0.75">0.75</option><option value="1.5">1.50</option></select>
+        </div>
+
+        <div class="group-label sensor" data-i18n="g_sensor">Sensor data (extracted features)</div>
+        
+        <div class="row">
+          <label for="smc"><span data-i18n="smc">Spindle current</span><span class="unit">V</span><span class="tip" data-i18n-title="t_smc" title="RMS of the spindle motor current over the analysis window.">ⓘ</span></label>
+          <input id="smc" type="number" step="0.01" oninput="onDraftChange()">
+        </div>
+        <div class="field-err" id="err_smc" data-i18n="err_val">Enter a valid number.</div>
+        <div class="oor" id="oor_smc" data-i18n="oor">Outside the observed benchmark range</div>
+
+        <div class="row">
+          <label for="kurt"><span data-i18n="kurt">Spindle vibration — kurtosis</span><span class="tip" data-i18n-title="t_kurt" title="Kurtosis of the spindle vibration signal (how impulsive it is).">ⓘ</span></label>
+          <input id="kurt" type="number" step="1" oninput="onDraftChange()">
+        </div>
+        <div class="field-err" id="err_kurt" data-i18n="err_val">Enter a valid number.</div>
+        <div class="oor" id="oor_kurt" data-i18n="oor">Outside the observed benchmark range</div>
+
+        <div class="row">
+          <label for="vp2p"><span data-i18n="vp2p">Spindle vibration — P2P</span><span class="unit">V</span><span class="tip" data-i18n-title="t_vp2p" title="Peak-to-peak amplitude of the spindle vibration signal.">ⓘ</span></label>
+          <input id="vp2p" type="number" step="0.01" oninput="onDraftChange()">
+        </div>
+        <div class="field-err" id="err_vp2p" data-i18n="err_val">Enter a valid number.</div>
+        <div class="oor" id="oor_vp2p" data-i18n="oor">Outside the observed benchmark range</div>
+
+        <div class="row">
+          <label for="aet"><span data-i18n="aet">AE — table RMS</span><span class="unit">V</span><span class="tip" data-i18n-title="t_aet" title="RMS of the acoustic emission signal measured at the table.">ⓘ</span></label>
+          <input id="aet" type="number" step="0.01" oninput="onDraftChange()">
+        </div>
+        <div class="field-err" id="err_aet" data-i18n="err_val">Enter a valid number.</div>
+        <div class="oor" id="oor_aet" data-i18n="oor">Outside the observed benchmark range</div>
+
+        <div class="row">
+          <label for="aes"><span data-i18n="aes">AE — spindle P2P</span><span class="unit">V</span><span class="tip" data-i18n-title="t_aes" title="Peak-to-peak amplitude of the acoustic emission signal at the spindle.">ⓘ</span></label>
+          <input id="aes" type="number" step="0.01" oninput="onDraftChange()">
+        </div>
+        <div class="field-err" id="err_aes" data-i18n="err_val">Enter a valid number.</div>
+        <div class="oor" id="oor_aes" data-i18n="oor">Outside the observed benchmark range</div>
+
+        <button type="submit" class="btn" data-i18n="btn">Estimate tool wear</button>
+      </form>
+    </div>
+
+    <!-- 2. RESULT -->
+    <div class="card result" id="result_card">
+      <div class="step"><span data-i18n="step2">2 · Your estimate</span></div>
+      
+      <!-- Stale Result Indicator -->
+      <div class="stale-note" id="stale_note" data-i18n="stale_note">Result shows previous inputs</div>
+      
+      <div class="kicker" data-i18n="kicker">Estimated flank wear width (VB)</div>
+      <div class="big"><span id="vb">–</span><small>mm</small></div>
+      <div id="pill" class="pill above"><span>●</span><span id="pill_txt"></span></div>
+
+      <div>
+        <div class="scale">
+          <div class="fill" id="fill" style="width:0"></div>
+          <div class="thr"></div>
+          <div class="dot" id="dot" style="left:0"></div>
+        </div>
+        <div class="ticks"><span>0</span><span style="margin-left:6%">0.30</span><span>1.0+ mm</span></div>
+      </div>
+
+      <div class="note floor" id="floor"></div>
+      <div class="note caution" id="caution" data-i18n="caution">High-Wear Caution: Prediction error increases at higher observed wear in this benchmark, particularly for severe wear cases. The model is not intended for catastrophic breakage or emergency tool-failure detection.</div>
+
+      <div class="mae">
+        <span data-i18n="mae_lbl">Benchmark MAE</span> <b>0.104 mm</b><br>
+        <span data-i18n="mae_txt">On average, estimates differed from measured VB by about 0.10 mm in the LOGO benchmark.</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3. SCENARIO -->
+  <section class="card">
+    <div class="step"><span data-i18n="step3">3 · Try another scenario</span></div>
+    <div class="scen">
+      <div class="box">
+        <div class="cap" data-i18n="cur">Current</div>
+        <div class="val" id="a_vb">–</div>
+        <div class="meta" id="a_meta"></div>
+      </div>
+      <div class="arrow">→</div>
+      <div class="box">
+        <div class="cap" data-i18n="alt">Alternative</div>
+        <div class="scen-sel">
+          <select id="b_mat" onchange="onScenarioBChange()"><option value="1" data-i18n="mat1s">Cast iron</option><option value="2" data-i18n="mat2s">Stainless J45</option></select>
+          <select id="b_feed" onchange="onScenarioBChange()"><option value="0.25">0.25</option><option value="0.5">0.50</option></select>
+          <select id="b_doc" onchange="onScenarioBChange()"><option value="0.75">0.75</option><option value="1.5">1.50</option></select>
+        </div>
+        <div class="val" id="b_vb">–</div>
+      </div>
+      <div class="delta-wrap">
+        <div class="delta" id="delta">Δ –</div>
+        <div class="delta-label" data-i18n="delta_lbl">Model-estimated change</div>
+      </div>
+    </div>
+    <div class="scen-floor-note" id="scen_floor_note" data-i18n="scen_floor_note">Δ computed from raw model output; displayed values are floored at 0.</div>
+    <p class="disclaimer" data-i18n="disc">Model-based comparison, not a causal estimate of tool-life improvement. Your sensor values are kept unchanged.</p>
+  </section>
+
+  <!-- 4. EVIDENCE (Progressive disclosure, English) -->
+  <details class="about">
+    <summary>About this model · evidence</summary>
+    <div class="about-body">
+      <p><b>What it does.</b> A standardized linear Ridge regression model (α = 1.0) estimates face-milling flank wear (VB, mm) from 3 machining-context inputs and 5 sensor features. It was benchmarked on the NASA milling dataset (145 valid observations, 16 tools, 8 cutting conditions).</p>
+      <div class="metrics">
+        <div class="metric">Leave-one-tool-out (LOGO)<b>MAE 0.1044 mm</b>R² 0.6989 across 16 unseen tools</div>
+        <div class="metric">Leave-one-condition-out (LOCO)<b>MAE 0.1221 mm</b>R² 0.6360 across 8 unseen cutting regimes</div>
+        <div class="metric">Cross-check<b>GBDT + TreeSHAP</b>directional consistency check</div>
+      </div>
+      <p><b>Limitations.</b> Laboratory benchmark with face-milling inserts under dry cutting. Inputs outside observed ranges represent extrapolation. Benchmark metrics represent grouped cross-validation error, not full-data training residual error. Not a calibrated confidence interval.</p>
+      <details class="deep">
+        <summary>Model coefficients (standardized Ridge, α = 1.0)</summary>
+        <table>
+          <thead><tr><th>#</th><th>Feature</th><th>Domain</th><th>Coef.</th></tr></thead>
+          <tbody>
+            <tr><td>1</td><td>smcAC_rms</td><td>Current</td><td class="pos">+0.2940</td></tr>
+            <tr><td>2</td><td>DOC_mm</td><td>Context</td><td class="neg">−0.1547</td></tr>
+            <tr><td>3</td><td>feed_mm_rev</td><td>Context</td><td class="neg">−0.0944</td></tr>
+            <tr><td>4</td><td>AE_spindle_p2p</td><td>Acoustic</td><td class="pos">+0.0302</td></tr>
+            <tr><td>5</td><td>vib_spindle_kurtosis</td><td>Vibration</td><td class="pos">+0.0205</td></tr>
+            <tr><td>6</td><td>AE_table_rms</td><td>Acoustic</td><td class="neg">−0.0199</td></tr>
+            <tr><td>7</td><td>vib_spindle_p2p</td><td>Vibration</td><td class="neg">−0.0156</td></tr>
+            <tr><td>8</td><td>material_code</td><td>Context</td><td class="pos">+0.0056</td></tr>
+          </tbody>
+        </table>
+      </details>
+    </div>
+  </details>
+
+  <p class="proto">CNC Tool Wear Estimator · locked Ridge model (dynamic loader with verified artifact fallback; bitwise parity verified)</p>
+</main>
+
+<script>
+  // =========================================================================
+  // MODEL ARTIFACT DEFINITION & DYNAMIC LOADER
+  // Primary: Dynamic fetch from data/ridge_model.json (when served via HTTP)
+  // Fallback: Bitwise-verified embedded artifact (for local file:/// execution)
+  // Parity verified against Python scikit-learn pipeline (max diff < 1e-15 mm)
+  // =========================================================================
+  const FEATURE_MAP = {
+    "smcAC_rms": "smc",
+    "DOC_mm": "doc",
+    "feed_mm_rev": "feed",
+    "AE_spindle_p2p": "aes",
+    "vib_spindle_kurtosis": "kurt",
+    "AE_table_rms": "aet",
+    "vib_spindle_p2p": "vp2p",
+    "material_code": "mat"
+  };
+
+  // Verified bitwise-identical copy of data/ridge_model.json
+  const EMBEDDED_MODEL_ARTIFACT = {
+    "model_type": "Ridge",
+    "alpha": 1.0,
+    "random_state": 42,
+    "feature_order": [
+      "smcAC_rms",
+      "DOC_mm",
+      "feed_mm_rev",
+      "AE_spindle_p2p",
+      "vib_spindle_kurtosis",
+      "AE_table_rms",
+      "vib_spindle_p2p",
+      "material_code"
+    ],
+    "scaler": {
+      "type": "StandardScaler",
+      "with_mean": true,
+      "with_std": true,
+      "mean": {
+        "smcAC_rms": 1.7384640072556947,
+        "DOC_mm": 1.0344827586206897,
+        "feed_mm_rev": 0.36551724137931035,
+        "AE_spindle_p2p": 0.42446373248922414,
+        "vib_spindle_kurtosis": 393.5800337209384,
+        "AE_table_rms": 0.19855306668663006,
+        "vib_spindle_p2p": 0.9488567483836207,
+        "material_code": 1.3310344827586207
+      },
+      "std": {
+        "smcAC_rms": 0.5684358372651779,
+        "DOC_mm": 0.36391156757250753,
+        "feed_mm_rev": 0.12463979015122634,
+        "AE_spindle_p2p": 0.20086612557945158,
+        "vib_spindle_kurtosis": 538.0099580214959,
+        "AE_table_rms": 0.057829941342489005,
+        "vib_spindle_p2p": 0.6546072125132442,
+        "material_code": 0.4705854374960546
+      }
+    },
+    "coefficients": {
+      "smcAC_rms": 0.29403487688762475,
+      "DOC_mm": -0.15467174796286123,
+      "feed_mm_rev": -0.09436124131358746,
+      "AE_spindle_p2p": 0.03020206075920267,
+      "vib_spindle_kurtosis": 0.020524083183130867,
+      "AE_table_rms": -0.01992486596051803,
+      "vib_spindle_p2p": -0.015571732172478947,
+      "material_code": 0.005614181842810112
+    },
+    "intercept": 0.3393793103448275
+  };
+
+  let activeModel = EMBEDDED_MODEL_ARTIFACT;
+  let modelSource = "embedded";
+
+  async function loadModelArtifact() {
+    try {
+      const res = await fetch("data/ridge_model.json");
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+      if (data && data.coefficients && data.scaler) {
+        activeModel = data;
+        modelSource = "fetched: data/ridge_model.json";
+        console.info("[CNC Tool Wear Estimator] Model artifact successfully loaded from data/ridge_model.json");
+        if (committedState) {
+          renderHeroResult();
+          renderScenario();
+        }
+      }
+    } catch (err) {
+      console.info("[CNC Tool Wear Estimator] Running verified embedded model artifact (local file protocol or fetch offline).");
+    }
+  }
+
+  const RANGE = {smc:[0.86,3.47], kurt:[-1.2,3094], vp2p:[0.10,2.25], aet:[0.02,0.35], aes:[0.09,1.18]};
+
+  // Real feature rows from data/feature_dataset_v32.csv (Ground truth VB is intentionally hidden)
+  const EX = {
+    low:   {mat:1, feed:0.25, doc:1.5,  smc:1.475, kurt:0.086,    vp2p:0.103, aet:0.174, aes:0.248},
+    mid:   {mat:2, feed:0.5,  doc:0.75, smc:1.584, kurt:23.291,   vp2p:0.361, aet:0.077, aes:0.295},
+    high:  {mat:1, feed:0.25, doc:0.75, smc:1.661, kurt:2194.609, vp2p:1.771, aet:0.246, aes:0.533},
+    floor: {mat:1, feed:0.5,  doc:1.5,  smc:1.532, kurt:-1.085,   vp2p:0.575, aet:0.178, aes:0.349}
+  };
+
+  // =========================================================================
+  // INTERNATIONALIZATION (User-Facing Layer Only)
+  // =========================================================================
+  const I18N = {
+    en: {
+      title:"CNC Tool Wear Estimator", subtitle:"Estimate flank wear width (VB) from machining conditions and sensor measurements.",
+      step1:"1 · Enter your data", step2:"2 · Your estimate", step3:"3 · Try another scenario",
+      stale_tag:"Inputs changed", stale_note:"Result shows previous inputs", err_val:"Enter a valid number.",
+      example:"Load example:", ex_pick:"Choose…", ex_low:"Low wear", ex_mid:"Mid-range wear", ex_high:"High wear", ex_floor:"Edge case (below zero)",
+      g_cond:"Machining condition", material:"Material", mat1:"Cast iron", mat2:"Stainless steel J45", mat1s:"Cast iron", mat2s:"Stainless J45",
+      feed:"Feed", u_feed:"mm/rev", doc:"Depth of cut",
+      g_sensor:"Sensor data (extracted features)",
+      smc:"Spindle current", kurt:"Spindle vibration — kurtosis", vp2p:"Spindle vibration — P2P", aet:"AE — table RMS", aes:"AE — spindle P2P",
+      t_smc:"RMS of the spindle motor current over the analysis window.", t_kurt:"Kurtosis of the spindle vibration signal (how impulsive it is).",
+      t_vp2p:"Peak-to-peak amplitude of the spindle vibration signal.", t_aet:"RMS of the acoustic emission signal measured at the table.", t_aes:"Peak-to-peak amplitude of the acoustic emission signal at the spindle.",
+      oor:"Outside the observed benchmark range", btn:"Estimate tool wear",
+      kicker:"Estimated flank wear width (VB)", above:"Above 0.30 mm analytical tool-life threshold", below:"Below 0.30 mm analytical tool-life threshold",
+      caution:"High-Wear Caution: Prediction error increases at higher observed wear in this benchmark, particularly for severe wear cases. The model is not intended for catastrophic breakage or emergency tool-failure detection.",
+      floor:(raw)=>`Display floor only: raw Ridge output is ${raw} mm, shown as 0.00 mm. Benchmark model output is not clipped.`,
+      mae_lbl:"Benchmark MAE", mae_txt:"On average, estimates differed from measured VB by about 0.10 mm in the LOGO benchmark.",
+      cur:"Current", alt:"Alternative", delta_lbl:"Model-estimated change",
+      disc:"Model-based comparison, not a causal estimate of tool-life improvement. Your sensor values are kept unchanged.",
+      scen_floor_note:"Δ computed from raw model output; displayed values are floored at 0.",
+      fmt:(v)=>v.toFixed(2), mat_name:(m)=>m==1?"Cast iron":"Stainless J45", feed_u:"mm/rev"
+    },
+    de: {
+      title:"CNC-Werkzeugverschleiß-Schätzer", subtitle:"Verschleißmarkenbreite (VB) aus Bearbeitungsbedingungen und Sensordaten schätzen.",
+      step1:"1 · Daten eingeben", step2:"2 · Ihre Schätzung", step3:"3 · Alternatives Szenario testen",
+      stale_tag:"Eingaben geändert", stale_note:"Ergebnis zeigt vorherige Eingaben", err_val:"Gültige Zahl eingeben.",
+      example:"Beispiel laden:", ex_pick:"Auswählen…", ex_low:"Geringer Verschleiß", ex_mid:"Mittlerer Verschleiß", ex_high:"Hoher Verschleiß", ex_floor:"Grenzfall (unter null)",
+      g_cond:"Bearbeitungsbedingungen", material:"Werkstoff", mat1:"Gusseisen", mat2:"Edelstahl J45", mat1s:"Gusseisen", mat2s:"Edelstahl J45",
+      feed:"Vorschub", u_feed:"mm/U", doc:"Schnitttiefe",
+      g_sensor:"Sensordaten (extrahierte Merkmale)",
+      smc:"Spindelstrom", kurt:"Spindelschwingung — Kurtosis", vp2p:"Spindelschwingung — Spitze-Spitze", aet:"Schallemission — Tisch RMS", aes:"Schallemission — Spindel Spitze-Spitze",
+      t_smc:"Effektivwert des Spindelmotorstroms im Analysefenster.", t_kurt:"Kurtosis des Spindelschwingungssignals (Maß für Impulshaltigkeit).",
+      t_vp2p:"Spitze-Spitze-Amplitude des Spindelschwingungssignals.", t_aet:"Effektivwert des Schallemissionssignals am Tisch.", t_aes:"Spitze-Spitze-Amplitude des Schallemissionssignals an der Spindel.",
+      oor:"Außerhalb des beobachteten Benchmark-Bereichs", btn:"Verschleiß schätzen",
+      kicker:"Geschätzte Verschleißmarkenbreite VB", above:"Über dem Grenzwert von 0,30 mm", below:"Unter dem Grenzwert von 0,30 mm",
+      caution:"Hinweis bei hohem Verschleiß: Im Benchmark steigt der Schätzfehler bei höherem beobachtetem Verschleiß, besonders bei starkem Verschleiß. Das Modell ist nicht für Werkzeugbruch oder Notfallerkennung vorgesehen.",
+      floor:(raw)=>`Anzeige-Untergrenze: Der Rohwert des Ridge-Modells beträgt ${raw} mm, angezeigt als 0,00 mm. Nur Anzeige — die Benchmark-Ausgabe wird nicht begrenzt.`,
+      mae_lbl:"Benchmark-MAE", mae_txt:"Im LOGO-Benchmark wich die Schätzung im Mittel um etwa 0,10 mm vom gemessenen VB ab.",
+      cur:"Aktuell", alt:"Alternative", delta_lbl:"Modellgeschätzte Änderung",
+      disc:"Modellbasierter Vergleich, keine kausale Schätzung einer Standzeitverbesserung. Ihre Sensorwerte bleiben unverändert.",
+      scen_floor_note:"Δ aus Rohmodellwert berechnet; Anzeigewerte bei 0 begrenzt.",
+      fmt:(v)=>v.toFixed(2).replace(".",","), mat_name:(m)=>m==1?"Gusseisen":"Edelstahl J45", feed_u:"mm/U"
+    }
+  };
+
+  let lang = "en";
+  const $ = (id) => document.getElementById(id);
+
+  // =========================================================================
+  // STATE MANAGEMENT: COMMITTED STATE vs DRAFT STATE
+  // =========================================================================
+  let committedState = null; // Exact inputs used by most recent successful estimate
+  let isStale = false;
+
+  function setLang(l) {
+    lang = l;
+    document.documentElement.lang = l;
+    $("btn_en").classList.toggle("active", l==="en");
+    $("btn_de").classList.toggle("active", l==="de");
+    const t = I18N[l];
+    document.querySelectorAll("[data-i18n]").forEach(el => {
+      const k = el.dataset.i18n;
+      if (typeof t[k] === "string") el.textContent = t[k];
+    });
+    document.querySelectorAll("[data-i18n-title]").forEach(el => {
+      el.title = t[el.dataset.i18nTitle];
+    });
+    // Re-render hero and scenario if committed state exists
+    if (committedState) {
+      renderHeroResult();
+      renderScenario();
+    }
+  }
+
+  // Pure model calculation using active model artifact
+  function ridge(v) {
+    const m = activeModel;
+    let s = m.intercept;
+    for (const f of m.feature_order) {
+      const k = FEATURE_MAP[f];
+      const z = (v[k] - m.scaler.mean[f]) / m.scaler.std[f];
+      s += m.coefficients[f] * z;
+    }
+    return s;
+  }
+
+  // Read current DOM values into draft object
+  function readDraft() {
+    return {
+      mat: +$("material").value,
+      feed: +$("feed").value,
+      doc: +$("doc").value,
+      smc: $("smc").value.trim() === "" ? NaN : +$("smc").value,
+      kurt: $("kurt").value.trim() === "" ? NaN : +$("kurt").value,
+      vp2p: $("vp2p").value.trim() === "" ? NaN : +$("vp2p").value,
+      aet: $("aet").value.trim() === "" ? NaN : +$("aet").value,
+      aes: $("aes").value.trim() === "" ? NaN : +$("aes").value
+    };
+  }
+
+  // Validate draft state
+  function validateDraft(draft) {
+    let isValid = true;
+    const fields = ['smc', 'kurt', 'vp2p', 'aet', 'aes'];
+    fields.forEach(f => {
+      const errEl = $("err_" + f);
+      const inputEl = $(f);
+      if (isNaN(draft[f]) || !isFinite(draft[f])) {
+        errEl.classList.add("show");
+        inputEl.classList.add("invalid");
+        isValid = false;
+      } else {
+        errEl.classList.remove("show");
+        inputEl.classList.remove("invalid");
+      }
+    });
+    return isValid;
+  }
+
+  // Range warning updates live during editing (purely informational, does NOT commit)
+  function checkRangeWarnings(draft) {
+    for (const k in RANGE) {
+      const val = draft[k];
+      const isOor = !isNaN(val) && (val < RANGE[k][0] || val > RANGE[k][1]);
+      $("oor_" + k).classList.toggle("show", isOor);
+    }
+  }
+
+  // Triggered on any keystroke or select change in main form
+  function onDraftChange() {
+    const draft = readDraft();
+    checkRangeWarnings(draft);
+    
+    // Mark draft as stale relative to committed state
+    isStale = true;
+    $("stale_badge").classList.add("show");
+    $("stale_note").classList.add("show");
+    $("result_card").classList.add("stale-border");
+    // CRITICAL: DO NOT recalculate Hero Result!
+    // CRITICAL: DO NOT replace Scenario A!
+  }
+
+  // Estimate action: validates draft, commits if valid, updates Hero & Scenarios
+  function estimate() {
+    const draft = readDraft();
+    const isValid = validateDraft(draft);
+    if (!isValid) {
+      // Invalid draft: do NOT update committedState, preserve previous result
+      return;
+    }
+
+    // Valid: copy draft -> committed state
+    committedState = { ...draft };
+    isStale = false;
+    $("stale_badge").classList.remove("show");
+    $("stale_note").classList.remove("show");
+    $("result_card").classList.remove("stale-border");
+
+    // Update Hero Result and Scenarios
+    renderHeroResult();
+    renderScenario();
+
+    // Subtle highlight pulse
+    const r = $("result_card");
+    r.style.transition = "box-shadow .3s";
+    r.style.boxShadow = "0 0 0 2px var(--primary)";
+    setTimeout(() => r.style.boxShadow = "none", 500);
+  }
+
+  // Load example: explicit user choice, commits immediately
+  function loadExample(name) {
+    const e = EX[name];
+    if (!e) return;
+    $("material").value = e.mat;
+    $("feed").value = e.feed;
+    $("doc").value = e.doc;
+    $("smc").value = e.smc;
+    $("kurt").value = e.kurt;
+    $("vp2p").value = e.vp2p;
+    $("aet").value = e.aet;
+    $("aes").value = e.aes;
+
+    // Reset Scenario B to default alternative feed
+    $("b_mat").value = e.mat;
+    $("b_feed").value = (e.feed === 0.5 ? 0.25 : 0.5);
+    $("b_doc").value = e.doc;
+
+    // Clear validation errors and range warnings
+    ['smc', 'kurt', 'vp2p', 'aet', 'aes'].forEach(f => {
+      $("err_" + f).classList.remove("show");
+      $(f).classList.remove("invalid");
+    });
+    checkRangeWarnings(e);
+
+    // Explicit action: commit immediately
+    committedState = { ...e };
+    isStale = false;
+    $("stale_badge").classList.remove("show");
+    $("stale_note").classList.remove("show");
+    $("result_card").classList.remove("stale-border");
+
+    renderHeroResult();
+    renderScenario();
+  }
+
+  // Render Hero Result based ONLY on committedState
+  function renderHeroResult() {
+    if (!committedState) return;
+    const t = I18N[lang];
+    const raw = ridge(committedState);
+    const displayVal = Math.max(0, raw);
+
+    $("vb").textContent = t.fmt(displayVal);
+    const pct = Math.min(100, displayVal * 100);
+    $("fill").style.width = pct + "%";
+    $("dot").style.left = pct + "%";
+
+    const above = displayVal >= 0.30;
+    $("pill").className = "pill " + (above ? "above" : "below");
+    $("pill_txt").textContent = above ? t.above : t.below;
+
+    // Display floor note (only if raw is negative)
+    const floorEl = $("floor");
+    floorEl.classList.toggle("show", raw < 0);
+    if (raw < 0) {
+      floorEl.textContent = t.floor(raw.toFixed(2).replace("-", "−").replace(".", lang==="de" ? "," : "."));
+    }
+
+    // High wear caution (display trigger around 0.40 mm)
+    $("caution").classList.toggle("show", displayVal >= 0.40);
+  }
+
+  // Scenario B live update (tied to committedState, not uncommitted draft)
+  function onScenarioBChange() {
+    renderScenario();
+  }
+
+  // Render Scenarios A & B
+  function renderScenario() {
+    if (!committedState) return;
+    const t = I18N[lang];
+    const rawA = ridge(committedState);
+    const displayA = Math.max(0, rawA);
+
+    // Scenario B: same sensor measurements as committedState, differing context
+    const bState = {
+      ...committedState,
+      mat: +$("b_mat").value,
+      feed: +$("b_feed").value,
+      doc: +$("b_doc").value
+    };
+    const rawB = ridge(bState);
+    const displayB = Math.max(0, rawB);
+
+    // CRITICAL FIX: Δ MUST be computed from raw model output before rounding
+    const deltaRaw = rawB - rawA;
+
+    $("a_vb").textContent = t.fmt(displayA) + " mm";
+    $("a_meta").textContent = `${t.mat_name(committedState.mat)} · ${t.fmt(committedState.feed)} ${t.feed_u} · ${t.fmt(committedState.doc)} mm`;
+    $("b_vb").textContent = t.fmt(displayB) + " mm";
+
+    const dEl = $("delta");
+    if (Math.abs(deltaRaw) < 0.005) {
+      dEl.textContent = "— 0.00 mm";
+    } else {
+      const sym = deltaRaw > 0 ? "▲ +" : "▼ −";
+      dEl.textContent = sym + t.fmt(Math.abs(deltaRaw)) + " mm";
+    }
+
+    // Floor note for scenario if either prediction is floored
+    const scenFloorNote = $("scen_floor_note");
+    scenFloorNote.classList.toggle("show", rawA < 0 || rawB < 0);
+  }
+
+  // Initial load
+  window.addEventListener("DOMContentLoaded", () => {
+    $("example").value = "mid";
+    loadExample("mid");
+    setLang("en");
+    loadModelArtifact();
+  });
+</script>
+</body>
+</html>

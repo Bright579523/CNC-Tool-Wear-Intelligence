@@ -1,0 +1,9 @@
+Feature,Type,Ridge_Standardized_Coef,Ridge_Rank,Ridge_Sign,GBDT_Mean_Abs_SHAP,GBDT_SHAP_Rank,GBDT_Observed_Direction,Broad_Consistency,Consistency_Rationale
+smcAC_rms,Sensor,0.2940348768876248,1,+,0.13829978269714818,1,Positive,Yes,Rank 1 in both models; strong positive weight/attribution associated with higher estimated wear
+DOC_mm,Context,-0.1546717479628611,2,-,0.05975651850726532,2,Negative,Yes,Rank 2 in both models; negative offset under joint prediction with spindle load
+feed_mm_rev,Context,-0.0943612413135874,3,-,0.030217438336451186,5,Negative,Yes,"Negative direction in both; secondary operating offset (Ridge Rank 3, GBDT Rank 5)"
+AE_spindle_p2p,Sensor,0.0302020607592026,4,+,0.045392954248473574,4,Positive,Yes,Rank 4 in both models; positive weight/attribution for high-frequency contact peaks
+vib_spindle_kurtosis,Sensor,0.0205240831831308,5,+,0.05463123544096185,3,Positive,Partial,Positive direction in both; GBDT gives higher rank (3 vs 5) via non-linear peak splits
+AE_table_rms,Sensor,-0.0199248659605181,6,-,0.01855997001430769,6,Weak,Yes,Rank 6 in both models; minor contribution in both formulations
+vib_spindle_p2p,Sensor,-0.0155717321724788,7,-,0.0051256162485624965,8,Weak,Yes,Both rank at bottom (7-8); negligible weight/attribution near zero
+material_code,Context,0.00561418184281,8,+,0.01217734800053818,7,Positive,Yes,Both rank near bottom (7-8); Stainless Steel receives slight positive offset

@@ -1,0 +1,5 @@
+Metric,Value,Unit,Interpretation
+Pearson Correlation (r),0.8450927265801695,dimensionless,Strong linear agreement between Ridge and GBDT predictions
+Mean Absolute Difference (MAD),0.09867108405849609,mm,Average absolute divergence between model predictions
+RMSE of Prediction Difference,0.12219194663358454,mm,Root mean square difference between model outputs
+Mean Signed Difference (Ridge - GBDT),-0.0006844017921930005,mm,Zero systematic net bias between the two model formulations

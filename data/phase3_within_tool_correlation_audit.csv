@@ -1,0 +1,26 @@
+column_name,sensor,feature,role,pooled_spearman_VB,within_tool_median_spearman,within_tool_mean_spearman,within_tool_min_spearman,within_tool_max_spearman,tools_positive,tools_strong_positive_gt_0.5
+smcAC_rms,smcAC,rms,Core,0.753,0.993,0.988,0.943,1.0,14/14,14/14
+smcAC_std,smcAC,std,Secondary,0.753,0.993,0.988,0.943,1.0,14/14,14/14
+smcAC_p2p,smcAC,p2p,Secondary,0.685,0.991,0.972,0.771,1.0,14/14,14/14
+smcAC_kurtosis,smcAC,kurtosis,Secondary,-0.062,-0.298,-0.343,-0.911,0.536,3/14,1/14
+smcAC_crest,smcAC,crest,Secondary,-0.122,-0.471,-0.356,-1.0,0.314,5/14,0/14
+smcAC_spindle_band_pwr,smcAC,spindle_band_pwr,Core,0.756,0.993,0.987,0.943,1.0,14/14,14/14
+smcDC_mean,smcDC,mean,Diagnostic / Conditional,0.783,0.983,0.978,0.927,1.0,14/14,14/14
+smcDC_std,smcDC,std,Diagnostic / Conditional,0.596,0.957,0.841,0.135,1.0,14/14,12/14
+vib_table_mean,vib_table,mean,Secondary,-0.205,-0.588,-0.273,-0.976,0.964,5/14,2/14
+vib_table_std,vib_table,std,Secondary,-0.353,-0.679,-0.373,-0.939,0.964,3/14,2/14
+vib_table_p2p,vib_table,p2p,Secondary,-0.231,-0.653,-0.564,-0.964,0.321,2/14,0/14
+vib_table_kurtosis,vib_table,kurtosis,Secondary,0.351,0.426,0.187,-1.0,0.967,8/14,6/14
+vib_table_spindle_band_pwr,vib_table,spindle_band_pwr,Core,-0.366,-0.758,-0.417,-0.964,0.657,4/14,1/14
+vib_table_tooth_band_pwr,vib_table,tooth_band_pwr,Core,-0.2,-0.71,-0.425,-0.943,0.75,3/14,3/14
+vib_spindle_mean,vib_spindle,mean,Secondary,-0.547,-0.821,-0.731,-1.0,0.0,0/14,0/14
+vib_spindle_p2p,vib_spindle,p2p,Core,0.521,0.609,0.526,-0.143,0.943,13/14,8/14
+vib_spindle_kurtosis,vib_spindle,kurtosis,Core,0.591,0.528,0.471,-0.314,0.903,12/14,7/14
+AE_table_mean,AE_table,mean,Secondary,0.668,0.951,0.893,0.657,1.0,14/14,14/14
+AE_table_rms,AE_table,rms,Core,0.668,0.957,0.892,0.643,1.0,14/14,14/14
+AE_table_p2p,AE_table,p2p,Secondary,0.674,0.804,0.749,0.321,0.983,14/14,12/14
+AE_table_kurtosis,AE_table,kurtosis,Secondary,0.135,0.036,-0.04,-0.9,0.783,7/14,2/14
+AE_spindle_mean,AE_spindle,mean,Secondary,0.573,0.922,0.906,0.65,1.0,14/14,14/14
+AE_spindle_rms,AE_spindle,rms,Secondary,0.594,0.901,0.895,0.629,1.0,14/14,14/14
+AE_spindle_p2p,AE_spindle,p2p,Core,0.672,0.785,0.763,0.541,0.952,14/14,14/14
+AE_spindle_kurtosis,AE_spindle,kurtosis,Secondary,0.257,0.121,0.068,-0.771,0.939,8/14,3/14

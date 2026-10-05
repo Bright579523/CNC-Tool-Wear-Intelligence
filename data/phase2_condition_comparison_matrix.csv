@@ -1,0 +1,9 @@
+condition_id,material,DOC_mm,feed_mm_rev,feed_speed_mm_min,MRR_prime_mm2_min,case_rep1,case_rep2,status_note,t030_rep1_min,t030_rep2_min,mean_t030_min,std_t030_min,mean_pass030,material_removed_proxy_030_rep1_mm2,material_removed_proxy_030_rep2_mm2,mean_material_removed_proxy_030_mm2
+1,Cast Iron,0.75,0.25,206.5,154.875,3,11,Both Replicates Valid,59.4,55.8,57.6,2.55,13.0,9199.6,8642.0,8920.8
+2,Cast Iron,0.75,0.5,413.0,309.75,2,12,Both Replicates Valid,43.8,40.5,42.15,2.33,9.28,13567.0,12544.9,13056.0
+3,Cast Iron,1.5,0.25,206.5,309.75,4,10,Both Replicates Valid,20.45,23.73,22.09,2.31,4.68,6335.8,7349.5,6842.7
+4,Cast Iron,1.5,0.5,413.0,619.5,1,9,Both Replicates Valid,29.33,23.64,26.48,4.03,7.69,18172.0,14642.7,16407.4
+5,Stainless Steel J45,0.75,0.25,206.5,154.875,7,13,Both Replicates Valid,14.2,15.33,14.77,0.8,5.73,2199.2,2374.8,2287.0
+6,Stainless Steel J45,0.75,0.5,413.0,309.75,8,14,Both Replicates Valid,6.0,10.64,8.32,3.28,4.05,1858.5,3294.6,2576.6
+7,Stainless Steel J45,1.5,0.25,206.5,309.75,6,15,Rep 1 Aborted (Case 6),,6.67,6.67,,3.22,,2065.0,2065.0
+8,Stainless Steel J45,1.5,0.5,413.0,619.5,5,16,Both Replicates Valid,6.2,4.12,5.16,1.47,3.41,3840.9,2555.4,3198.2
