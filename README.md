@@ -92,17 +92,71 @@ Two validation strategies were used:
 * **Live Demo:** [Open Interactive Dashboard on GitHub Pages](https://bright579523.github.io/CNC-Tool-Wear-Intelligence/)
 * **Local file:** [`index.html`](index.html)
 
-The dashboard allows users to:
-* Enter machining conditions
-* Enter sensor measurements
-* Estimate flank wear width $VB$
-* Compare the result with the analytical 0.30 mm threshold
-* Test an alternative machining condition using the same sensor measurements
+The dashboard allows domain engineers and evaluators to:
+* Input machining parameters and extracted sensory features
+* Obtain an immediate flank wear ($VB$) estimate powered by the locked Ridge model
+* Contextualise the prediction against the ISO 8688-2 analytical threshold ($0.30\text{ mm}$)
+* Evaluate what-if machining scenarios ($\Delta VB$) holding current sensor measurements constant
+* Toggle between English and German engineering terminology
 
-Key implementation details:
-* The interface is available in **English** and **German**.
-* The dashboard uses the saved Ridge model artifact in [`data/ridge_model.json`](data/ridge_model.json).
-* The browser calculation was checked against the Python implementation and the model artifact, confirming end-to-end parity to machine precision ($\le 2.22 \times 10^{-16}\text{ mm}$).
+### 1. Baseline Wear Estimation & Scenario Comparison (English)
+
+![CNC Tool Wear Estimator - Mid-wear Baseline](docs/images/dashboard_mid_wear.png)
+
+* **Operating Inputs:**
+  * Material: **Stainless steel J45**
+  * Feed: **$0.50\text{ mm/rev}$**
+  * Depth of cut: **$0.75\text{ mm}$**
+  * Sensor features: Spindle current $= 1.584\text{ V}$, Spindle vibration kurtosis $= 23.291$, Spindle vibration P2P $= 0.361\text{ V}$, AE table RMS $= 0.077\text{ V}$, AE spindle P2P $= 0.295\text{ V}$
+* **Estimation Result:**
+  * Flank Wear Width ($VB$): **$0.31\text{ mm}$**
+  * Tool-Life Indicator: **Above 0.30 mm analytical tool-life threshold** (Amber status)
+  * Visual Scale: Progress marker aligned at $0.31\text{ mm}$ on the calibrated scale
+* **What-If Scenario Comparison:**
+  * Evaluated alternative: Same sensor signals, but switching feed rate to **$0.25\text{ mm/rev}$**
+  * Alternative estimate: **$0.50\text{ mm}$** ($\Delta = \mathbf{+0.19\text{ mm}}$)
+
+---
+
+### 2. Localised Engineering Interface (German / Deutsch)
+
+The entire interface supports German manufacturing and mechanical engineering conventions (DIN/ISO terminology, localized decimal comma formatting, and German glossaries).
+
+![CNC Tool Wear Estimator - German Interface](docs/images/dashboard_german_mode.png)
+
+* **Fachterminologie & Lokalisierung:**
+  * Kopfzeile: *CNC-Werkzeugverschleiß-Schätzer*
+  * Schnittparameter: *Werkstoff: Edelstahl J45*, *Vorschub: 0,50 mm/U* (Umdrehungsvorschub $f_{rev}$), *Schnitttiefe: 0,75 mm*
+  * Sensorsignale: *Spindelstrom (1,584 V)*, *Spindelschwingung (Kurtosis 23,291; Spitze-Spitze 0,361 V)*, *Schallemission (Tisch RMS 0,077 V; Spindel Spitze-Spitze 0,295 V)*
+* **Ergebnis & Status:**
+  * Geschätzte Verschleißmarkenbreite ($VB$): **$0,31\text{ mm}$**
+  * Status-Pille: **Über dem Grenzwert von 0,30 mm**
+  * Szenario-Vergleich: *Aktuell 0,31 mm* $\rightarrow$ *Alternative 0,50 mm* (*Modellgeschätzte Änderung +0,19 mm*)
+  * Genauigkeitsangabe: *Benchmark-MAE 0,104 mm*
+
+---
+
+### 3. Severe Wear Regime & Model Uncertainty Advisory
+
+![CNC Tool Wear Estimator - High Wear Caution](docs/images/dashboard_high_wear.png)
+
+* **Operating Inputs (Severe Tool Condition):**
+  * Material: **Cast iron**
+  * Feed: **$0.25\text{ mm/rev}$**
+  * Depth of cut: **$0.75\text{ mm}$**
+  * Sensor features: Spindle current $= 1.661\text{ V}$, Spindle vibration kurtosis $= 2194.609$, Spindle vibration P2P $= 1.771\text{ V}$, AE table RMS $= 0.246\text{ V}$, AE spindle P2P $= 0.533\text{ V}$
+* **Estimation Result & Safety Transparency:**
+  * Flank Wear Width ($VB$): **$0.55\text{ mm}$**
+  * Status: **Above 0.30 mm analytical tool-life threshold**
+  * **High-Wear Caution Banner:** Transparently warns that prediction variance and residual error increase significantly at advanced wear stages, reminding the user that the linear model is not designed for catastrophic tool breakage detection.
+  * Alternative Scenario: Increasing feed rate to $0.50\text{ mm/rev}$ yields an alternative estimate of **$0.36\text{ mm}$** ($\Delta = \mathbf{-0.19\text{ mm}}$).
+
+---
+
+### Model Parity & Verification
+
+* The dashboard loads the Ridge model artifact directly from [`data/ridge_model.json`](data/ridge_model.json).
+* End-to-end mathematical parity between scikit-learn in Python and the browser client is verified in [`scripts/verify_dashboard_parity.py`](scripts/verify_dashboard_parity.py) ($\le 2.22 \times 10^{-16}\text{ mm}$ machine precision difference).
 
 ---
 
